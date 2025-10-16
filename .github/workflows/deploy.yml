@@ -1,0 +1,43 @@
+name: Deploy Telegram Bot to Raspberry Pi
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t telegram-echo-bot .
+
+      - name: Save image to tar
+        run: docker save telegram-echo-bot > telegram-echo-bot.tar
+
+      - name: Copy image to Raspberry Pi
+        uses: appleboy/scp-action@v0.1.5
+        with:
+          host: ${{ secrets.PI_HOST }}
+          username: ${{ secrets.PI_USER }}
+          key: ${{ secrets.PI_SSH_KEY }}
+          source: 'telegram-echo-bot.tar'
+          target: '~/telegram-echo-bot.tar'
+
+      - name: Deploy on Raspberry Pi
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.PI_HOST }}
+          username: ${{ secrets.PI_USER }}
+          key: ${{ secrets.PI_SSH_KEY }}
+          script: |
+            docker load < ~/telegram-echo-bot.tar
+            docker stop telegram-echo-bot || true
+            docker rm telegram-echo-bot || true
+            docker run -d \
+              --name telegram-echo-bot \
+              --env BOT_TOKEN=${{ secrets.BOT_TOKEN }} \
+              telegram-echo-bot
