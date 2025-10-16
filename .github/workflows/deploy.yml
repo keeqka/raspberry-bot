@@ -35,9 +35,9 @@ jobs:
           username: ${{ secrets.PI_USER }}
           key: ${{ secrets.PI_SSH_KEY }}
           port: ${{ secrets.PI_PORT }}
-          source: 'telegram-echo-bot.tar'
+          source: './telegram-echo-bot.tar'
           target: '~/telegram-echo-bot.tar'
-          tar_exec: false
+          tar_exec: 'false'
 
       - name: Deploy on Raspberry Pi
         uses: appleboy/ssh-action@v0.1.10
