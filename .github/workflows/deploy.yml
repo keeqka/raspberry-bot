@@ -25,30 +25,18 @@ jobs:
       - name: Save image to tar
         run: docker save telegram-echo-bot:latest -o telegram-echo-bot.tar
 
-      - name: Copy image to Raspberry Pi via SSH (through Cloudflare Tunnel)
+      - name: Copy image and deploy container on Raspberry Pi via SSH (Cloudflare Tunnel)
         run: |
           echo "${{ secrets.PI_SSH_KEY }}" > key.pem
           chmod 600 key.pem
+          scp -o ProxyCommand="cloudflared access ssh --hostname ${{ secrets.PI_HOST }}" \
+              -i key.pem -P 22 telegram-echo-bot.tar ${{ secrets.PI_USER }}@${{ secrets.PI_HOST }}:~/bot/telegram-echo-bot.tar
           ssh -o ProxyCommand="cloudflared access ssh --hostname ${{ secrets.PI_HOST }}" \
               -i key.pem -p 22 ${{ secrets.PI_USER }}@${{ secrets.PI_HOST }} \
-              "mkdir -p ~/bot && cat > ~/bot/telegram-echo-bot.tar" < telegram-echo-bot.tar
-          rm key.pem
-
-      - name: Deploy container on Raspberry Pi
-        run: |
-          echo "${{ secrets.PI_SSH_KEY }}" > key.pem
-          chmod 600 key.pem
-          ssh -o ProxyCommand="cloudflared access ssh --hostname ${{ secrets.PI_HOST }}" \
-              -i key.pem -p 22 ${{ secrets.PI_USER }}@${{ secrets.PI_HOST }} bash << 'ENDSSH'
-cd ~/bot
-docker stop telegram-echo-bot || true
-docker rm telegram-echo-bot || true
-docker rmi telegram-echo-bot:latest || true
-docker load -i telegram-echo-bot.tar
-docker run -d \
-  --name telegram-echo-bot \
-  --restart unless-stopped \
-  -e BOT_TOKEN=$BOT_TOKEN \
-  telegram-echo-bot:latest
-ENDSSH
+              "cd ~/bot && \
+               docker stop telegram-echo-bot || true && \
+               docker rm telegram-echo-bot || true && \
+               docker rmi telegram-echo-bot:latest || true && \
+               docker load -i telegram-echo-bot.tar && \
+               docker run -d --name telegram-echo-bot --restart unless-stopped -e BOT_TOKEN=$BOT_TOKEN telegram-echo-bot:latest"
           rm key.pem
