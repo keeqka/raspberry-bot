@@ -40,15 +40,15 @@ jobs:
           chmod 600 key.pem
           ssh -o ProxyCommand="cloudflared access ssh --hostname ${{ secrets.PI_HOST }}" \
               -i key.pem -p 22 ${{ secrets.PI_USER }}@${{ secrets.PI_HOST }} bash << 'ENDSSH'
-            cd ~/bot
-            docker stop telegram-echo-bot || true
-            docker rm telegram-echo-bot || true
-            docker rmi telegram-echo-bot:latest || true
-            docker load -i telegram-echo-bot.tar
-            docker run -d \
-              --name telegram-echo-bot \
-              --restart unless-stopped \
-              -e BOT_TOKEN=$BOT_TOKEN \
-              telegram-echo-bot:latest
+cd ~/bot
+docker stop telegram-echo-bot || true
+docker rm telegram-echo-bot || true
+docker rmi telegram-echo-bot:latest || true
+docker load -i telegram-echo-bot.tar
+docker run -d \
+  --name telegram-echo-bot \
+  --restart unless-stopped \
+  -e BOT_TOKEN=$BOT_TOKEN \
+  telegram-echo-bot:latest
 ENDSSH
           rm key.pem
