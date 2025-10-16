@@ -30,7 +30,7 @@ jobs:
           echo "${{ secrets.PI_SSH_KEY }}" > key.pem
           chmod 600 key.pem
           ssh -o ProxyCommand="cloudflared access ssh --hostname ${{ secrets.PI_HOST }}" \
-              -i key.pem -p 22 ${{ secrets.PI_USER }}@$PI_HOST \
+              -i key.pem -p 22 ${{ secrets.PI_USER }}@${{ secrets.PI_HOST }} \
               "mkdir -p ~/bot && cat > ~/bot/telegram-echo-bot.tar" < telegram-echo-bot.tar
           rm key.pem
 
@@ -39,7 +39,7 @@ jobs:
           echo "${{ secrets.PI_SSH_KEY }}" > key.pem
           chmod 600 key.pem
           ssh -o ProxyCommand="cloudflared access ssh --hostname ${{ secrets.PI_HOST }}" \
-              -i key.pem -p 22 ${{ secrets.PI_USER }}@$PI_HOST << 'EOF'
+              -i key.pem -p 22 ${{ secrets.PI_USER }}@${{ secrets.PI_HOST }} bash << 'ENDSSH'
             cd ~/bot
             docker stop telegram-echo-bot || true
             docker rm telegram-echo-bot || true
@@ -50,5 +50,5 @@ jobs:
               --restart unless-stopped \
               -e BOT_TOKEN=$BOT_TOKEN \
               telegram-echo-bot:latest
-EOF
+ENDSSH
           rm key.pem
