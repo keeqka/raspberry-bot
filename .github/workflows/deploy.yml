@@ -1,4 +1,4 @@
-name: Deploy Telegram Bot to Raspberry Pi
+name: 🚀 Deploy Telegram Bot to Raspberry Pi
 
 on:
   push:
@@ -9,21 +9,29 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Build Docker image
-        run: docker build -t telegram-echo-bot .
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image for ARM
+        run: |
+          docker buildx build \
+            --platform linux/arm64 \
+            -t telegram-echo-bot:latest \
+            --load .
 
       - name: Save image to tar
-        run: docker save telegram-echo-bot > telegram-echo-bot.tar
+        run: docker save telegram-echo-bot:latest -o telegram-echo-bot.tar
 
-      - name: Copy image to Raspberry Pi
-        uses: appleboy/scp-action@v0.1.5
+      - name: Upload image to Raspberry Pi
+        uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.PI_HOST }}
           username: ${{ secrets.PI_USER }}
           key: ${{ secrets.PI_SSH_KEY }}
+          port: ${{ secrets.PI_PORT }}
           source: 'telegram-echo-bot.tar'
           target: '~/telegram-echo-bot.tar'
 
@@ -33,11 +41,23 @@ jobs:
           host: ${{ secrets.PI_HOST }}
           username: ${{ secrets.PI_USER }}
           key: ${{ secrets.PI_SSH_KEY }}
+          port: ${{ secrets.PI_PORT }}
           script: |
-            docker load < ~/telegram-echo-bot.tar
+            echo "🧹 Cleaning up old image..."
             docker stop telegram-echo-bot || true
             docker rm telegram-echo-bot || true
+            docker rmi telegram-echo-bot:latest || true
+            rm -f ~/telegram-echo-bot.tar.old
+            mv ~/telegram-echo-bot.tar ~/telegram-echo-bot.tar.old
+
+            echo "📦 Loading new image..."
+            docker load -i ~/telegram-echo-bot.tar.old
+
+            echo "🚀 Starting new container..."
             docker run -d \
               --name telegram-echo-bot \
-              --env BOT_TOKEN=${{ secrets.BOT_TOKEN }} \
-              telegram-echo-bot
+              --restart unless-stopped \
+              -e BOT_TOKEN=${{ secrets.BOT_TOKEN }} \
+              telegram-echo-bot:latest
+
+            echo "✅ Deployment complete!"
