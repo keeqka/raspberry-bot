@@ -25,19 +25,16 @@ jobs:
       - name: Save Docker image to tar
         run: docker save telegram-echo-bot:latest -o telegram-echo-bot.tar
 
-      - name: Fix permissions
-        run: chmod 644 telegram-echo-bot.tar
-
-      - name: Upload image to Raspberry Pi
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.PI_HOST }}
-          username: ${{ secrets.PI_USER }}
-          key: ${{ secrets.PI_SSH_KEY }}
-          port: ${{ secrets.PI_PORT }}
-          source: './telegram-echo-bot.tar'
-          target: '~/telegram-echo-bot.tar'
-          tar_exec: 'false'
+      - name: Copy image to Raspberry Pi via scp
+        env:
+          PI_HOST: ${{ secrets.PI_HOST }}
+          PI_PORT: ${{ secrets.PI_PORT }}
+          PI_USER: ${{ secrets.PI_USER }}
+        run: |
+          echo "${{ secrets.PI_SSH_KEY }}" > key.pem
+          chmod 600 key.pem
+          scp -o StrictHostKeyChecking=no -P $PI_PORT telegram-echo-bot.tar $PI_USER@$PI_HOST:~/telegram-echo-bot.tar
+          rm key.pem
 
       - name: Deploy on Raspberry Pi
         uses: appleboy/ssh-action@v0.1.10
@@ -48,13 +45,12 @@ jobs:
           port: ${{ secrets.PI_PORT }}
           script: |
             set -e
-
             echo "🧹 Cleaning up old containers and images..."
             docker stop telegram-echo-bot || true
             docker rm telegram-echo-bot || true
             docker rmi telegram-echo-bot:latest || true
 
-            echo "🧽 Removing old Docker data..."
+            echo "🧽 Removing unused Docker data..."
             docker system prune -af --volumes || true
 
             echo "📦 Loading new image..."
