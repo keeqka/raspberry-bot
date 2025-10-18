@@ -27,9 +27,9 @@ jobs:
       - name: Deploy to Raspberry Pi
         uses: appleboy/ssh-action@v1.2.0
         with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
           port: 22
           script: |
             cd ~/raspberry-bot || git clone https://github.com/keeqka/raspberry-bot.git raspberry-bot
