@@ -16,7 +16,7 @@ export class BotModule implements OnModuleInit {
 
     this.bot = new Telegraf(token);
 
-    this.bot.start((ctx) => ctx.reply('CHEKAVO?'));
+    this.bot.start((ctx) => ctx.reply('Hi'));
     this.bot.on('text', (ctx) => ctx.reply(`Replying: ${ctx.message.text}`));
 
     await this.bot.launch();
