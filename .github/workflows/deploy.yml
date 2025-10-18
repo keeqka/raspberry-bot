@@ -13,10 +13,10 @@ jobs:
       - name: Deploy over SSH to Raspberry Pi
         uses: appleboy/ssh-action@v1.2.0
         with:
-          host: 192.168.0.253
+          host: 87.76.50.180
           username: keeqka
           key: ${{ secrets.SSH_KEY }}
-          port: 22
+          port: 2222
           script: |
             cd ~/raspberry-bot || git clone https://github.com/keeqka/raspberry-bot.git raspberry-bot
             cd raspberry-bot
