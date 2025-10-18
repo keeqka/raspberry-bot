@@ -2,7 +2,12 @@ version: '3.8'
 
 services:
   telegram-bot:
-    build: .
-    container_name: telegram-echo-bot
+    build:
+      context: .
+      args:
+        - BUILD_VERSION=${GITHUB_SHA}
+    container_name: nest-telegram-bot
     restart: unless-stopped
     env_file: .env
+    ports:
+      - '3000:3000'
