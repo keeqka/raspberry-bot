@@ -1,8 +1,9 @@
-name: 🚀 Deploy Telegram Bot via Cloudflare Tunnel
+name: Deploy to Raspberry Pi
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
 
 jobs:
   deploy:
@@ -12,44 +13,29 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install Cloudflared
-        run: |
-          curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb -o cloudflared.deb
-          sudo dpkg -i cloudflared.deb
-          cloudflared --version
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Install dependencies
+        run: npm ci
 
-      - name: Build Docker image for ARM
-        run: |
-          docker buildx build \
-            --platform linux/arm64 \
-            -t telegram-echo-bot:latest \
-            --load .
+      - name: Build NestJS project
+        run: npm run build
 
-      - name: Save Docker image to tar
-        run: docker save telegram-echo-bot:latest -o telegram-echo-bot.tar
-
-      - name: Copy image to Raspberry Pi via SSH (Cloudflare Tunnel)
-        run: |
-          echo "${{ secrets.PI_SSH_KEY }}" > key.pem
-          chmod 600 key.pem
-          mkdir -p bot
-          scp -o ProxyCommand="cloudflared access ssh --hostname ${{ secrets.PI_HOST }}" \
-              -i key.pem -P 22 telegram-echo-bot.tar ${{ secrets.PI_USER }}@${{ secrets.PI_HOST }}:~/bot/telegram-echo-bot.tar
-          rm key.pem
-
-      - name: Deploy container on Raspberry Pi
-        run: |
-          echo "${{ secrets.PI_SSH_KEY }}" > key.pem
-          chmod 600 key.pem
-          ssh -o ProxyCommand="cloudflared access ssh --hostname ${{ secrets.PI_HOST }}" \
-              -i key.pem -p 22 ${{ secrets.PI_USER }}@${{ secrets.PI_HOST }} \
-              "cd ~/bot && \
-               docker stop telegram-echo-bot || true && \
-               docker rm telegram-echo-bot || true && \
-               docker rmi telegram-echo-bot:latest || true && \
-               docker load -i telegram-echo-bot.tar && \
-               docker run -d --name telegram-echo-bot --restart unless-stopped -e BOT_TOKEN=$BOT_TOKEN telegram-echo-bot:latest"
-          rm key.pem
+      - name: Deploy to Raspberry Pi
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.PORT }}
+          script: |
+            cd ~/my-bot || git clone https://github.com/<your-username>/<your-repo>.git my-bot && cd my-bot
+            git pull
+            npm ci
+            npm run build
+            pm2 stop nest-bot || true
+            pm2 start dist/main.js --name nest-bot
+            pm2 save
