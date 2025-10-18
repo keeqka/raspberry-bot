@@ -18,11 +18,16 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           port: 2222
           script: |
-            set -e  # ⛔ Останавливаем выполнение при ошибке
+            set -e
             echo "🔹 Starting deployment on Raspberry Pi..."
 
-            cd ~/raspberry-bot || git clone https://github.com/keeqka/raspberry-bot.git raspberry-bot
-            cd raspberry-bot
+            # Проверяем папку и клонируем если нужно
+            if [ ! -d "~/raspberry-bot" ]; then
+              echo "📦 Cloning repository..."
+              git clone https://github.com/keeqka/raspberry-bot.git ~/raspberry-bot
+            fi
+
+            cd ~/raspberry-bot
 
             echo "🔹 Pulling latest code..."
             git fetch origin main
