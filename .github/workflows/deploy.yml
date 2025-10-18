@@ -1,4 +1,4 @@
-name: Deploy to Raspberry Pi
+name: 🚀 Deploy to Raspberry Pi
 
 on:
   push:
@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Deploy over SSH to Raspberry Pi
+      - name: 🚢 Deploy over SSH to Raspberry Pi
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: 87.76.50.180
@@ -18,11 +18,27 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           port: 2222
           script: |
+            echo "🔹 Starting deployment on Raspberry Pi..."
+
+            # Клонируем проект, если нет
             cd ~/raspberry-bot || git clone https://github.com/keeqka/raspberry-bot.git raspberry-bot
             cd raspberry-bot
+
+            echo "🔹 Pulling latest changes..."
             git pull
+
+            echo "🔹 Installing dependencies..."
             yarn install --frozen-lockfile
+
+            echo "🔹 Building the project..."
             yarn build
+
+            echo "🔹 Writing environment variables..."
+            echo "BOT_TOKEN=${{ secrets.BOT_TOKEN }}" > .env
+
+            echo "🔹 Restarting PM2 process..."
             pm2 stop nest-bot || true
             pm2 start dist/main.js --name nest-bot
             pm2 save
+
+            echo "✅ Deployment completed successfully!"
