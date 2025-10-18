@@ -10,25 +10,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Install dependencies
-        run: yarn install --frozen-lockfile
-
-      - name: Build NestJS project
-        run: npm run build
-
-      - name: Deploy to Raspberry Pi
+      - name: Deploy over SSH to Raspberry Pi
         uses: appleboy/ssh-action@v1.2.0
         with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USERNAME }}
+          host: 192.168.0.253
+          username: keeqka
           key: ${{ secrets.SSH_KEY }}
           port: 22
           script: |
